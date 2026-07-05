@@ -1,0 +1,3 @@
+quarkus:
+  redis:
+    hosts: redis://localhost/

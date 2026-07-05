@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Test</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: system-ui, sans-serif; background: #f5f5f5; display: flex; justify-content: center; padding: 2rem; }
+        .container { width: 600px; background: #fff; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,.1); overflow: hidden; }
+        .header { background: #4f46e5; color: #fff; padding: 1rem 1.5rem; font-weight: 600; font-size: 1.2rem; }
+        .login { padding: 2rem; display: flex; gap: .5rem; }
+        .login input { flex: 1; padding: .5rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; }
+        .login button { padding: .5rem 1.5rem; background: #4f46e5; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 1rem; }
+        .login button:hover { background: #4338ca; }
+        .chat { display: none; flex-direction: column; height: 500px; }
+        .chat.active { display: flex; }
+        .messages { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: .5rem; }
+        .msg { padding: .5rem 1rem; border-radius: 8px; max-width: 80%; word-break: break-word; }
+        .msg.in { background: #eef2ff; align-self: flex-start; }
+        .msg.out { background: #4f46e5; color: #fff; align-self: flex-end; }
+        .msg.system { background: #f3f4f6; color: #6b7280; align-self: center; font-size: .85rem; font-style: italic; }
+        .msg .sender { font-size: .75rem; font-weight: 600; margin-bottom: 2px; }
+        .msg.out .sender { color: #c7d2fe; }
+        .msg .time { font-size: .7rem; opacity: .7; margin-left: .5rem; }
+        .input-area { display: flex; gap: .5rem; padding: 1rem; border-top: 1px solid #e5e7eb; }
+        .input-area input { flex: 1; padding: .5rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: .95rem; }
+        .input-area input:focus { outline: none; border-color: #4f46e5; }
+        .input-area button { padding: .5rem 1.5rem; background: #4f46e5; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+        .input-area button:hover { background: #4338ca; }
+        .status { padding: .25rem 1rem; font-size: .8rem; color: #6b7280; border-top: 1px solid #e5e7eb; }
+        .status.connected { color: #059669; }
+        .send-method { display: flex; gap: .5rem; align-items: center; padding: 0 1rem .5rem; font-size: .8rem; color: #9ca3af; }
+        .send-method label { display: flex; align-items: center; gap: .25rem; cursor: pointer; }
+        .send-method input[type="radio"] { cursor: pointer; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">Chat Test</div>
+
+    <div class="login" id="loginView">
+        <input type="text" id="userIdInput" placeholder="Your user ID (e.g. alice)" autofocus>
+        <button onclick="connect()">Connect</button>
+    </div>
+
+    <div class="chat" id="chatView">
+        <div class="messages" id="messages"></div>
+        <div class="send-method">
+            <label><input type="radio" name="method" value="ws" checked> WebSocket</label>
+            <label><input type="radio" name="method" value="http"> HTTP</label>
+        </div>
+        <div class="input-area">
+            <input type="text" id="recipientInput" placeholder="Recipient (e.g. bob)">
+            <input type="text" id="messageInput" placeholder="Type a message..." onkeydown="if(event.key==='Enter') send()">
+            <button onclick="send()">Send</button>
+        </div>
+        <div class="status" id="status">Disconnected</div>
+    </div>
+</div>
+
+<script>
+    let ws = null
+    let userId = ''
+
+    function connect() {
+        userId = document.getElementById('userIdInput').value.trim()
+        if (!userId) return alert('Enter a user ID')
+
+        document.getElementById('loginView').style.display = 'none'
+        document.getElementById('chatView').classList.add('active')
+
+        const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
+        ws = new WebSocket(`${protocol}//${location.host}/chat/${userId}`)
+
+        ws.onopen = () => {
+            setStatus('Connected as ' + userId, true)
+            addMessage({ type: 'SYSTEM', content: 'Connected as ' + userId })
+        }
+
+        ws.onmessage = (e) => addMessage(JSON.parse(e.data))
+
+        ws.onclose = () => {
+            setStatus('Disconnected', false)
+            addMessage({ type: 'SYSTEM', content: 'Disconnected' })
+        }
+
+        ws.onerror = () => setStatus('Connection error', false)
+    }
+
+    function send() {
+        const recipient = document.getElementById('recipientInput').value.trim()
+        const content = document.getElementById('messageInput').value.trim()
+        if (!recipient || !content) return
+
+        const msg = { type: 'CHAT', sender: userId, recipient, content, timestamp: Date.now() }
+        const useHttp = document.querySelector('input[name="method"]:checked').value === 'http'
+
+        if (useHttp) {
+            fetch('/api/chat/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(msg),
+            })
+        } else {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return
+            ws.send(JSON.stringify(msg))
+        }
+
+        addMessage(msg, true)
+        document.getElementById('messageInput').value = ''
+    }
+
+    function addMessage(msg, outgoing) {
+        const el = document.getElementById('messages')
+        const div = document.createElement('div')
+
+        if (msg.type === 'SYSTEM' || msg.type === 'JOINED' || msg.type === 'LEFT') {
+            div.className = 'msg system'
+            div.textContent = msg.content
+        } else {
+            div.className = outgoing ? 'msg out' : 'msg in'
+            const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : ''
+            div.innerHTML = `<div class="sender">${msg.sender} <span class="time">${time}</span></div>${msg.content}`
+        }
+
+        el.appendChild(div)
+        el.scrollTop = el.scrollHeight
+    }
+
+    function setStatus(text, connected) {
+        const el = document.getElementById('status')
+        el.textContent = text
+        el.className = 'status' + (connected ? ' connected' : '')
+    }
+</script>
+</body>
+</html>
