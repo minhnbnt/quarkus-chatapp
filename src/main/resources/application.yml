@@ -1,3 +1,37 @@
 quarkus:
   redis:
     hosts: redis://localhost/
+
+  datasource:
+    db-kind: postgresql
+    username: chatapp
+    password: chatapp
+    reactive:
+      url: vertx-reactive:postgresql://localhost:5432/chatapp
+    jdbc:
+      url: jdbc:postgresql://localhost:5432/chatapp
+
+  hibernate-orm:
+    schema-management:
+      strategy: drop-and-create
+
+  http:
+    auth:
+      proactive: false
+
+mp:
+  jwt:
+    verify:
+      publickey:
+        algorithm: HS256
+
+smallrye:
+  jwt:
+    verify:
+      key:
+        location: jwt-key.jwk
+    sign:
+      key:
+        location: jwt-key.jwk
+    new-token:
+      signature-algorithm: HS256

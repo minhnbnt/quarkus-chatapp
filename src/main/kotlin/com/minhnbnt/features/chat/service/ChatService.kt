@@ -1,8 +1,8 @@
-package com.minhnbnt.service
+package com.minhnbnt.features.chat.service
 
-import com.minhnbnt.infrashtructure.ConnectionSubscriptionManager
-import com.minhnbnt.websockets.ChatMessage
-import com.minhnbnt.websockets.MessageType
+import com.minhnbnt.domain.ChatMessage
+import com.minhnbnt.domain.MessageType
+import com.minhnbnt.infrastructure.ConnectionSubscriptionManager
 import io.quarkus.redis.datasource.ReactiveRedisDataSource
 import io.quarkus.websockets.next.WebSocketConnection
 import io.smallrye.mutiny.coroutines.awaitSuspending

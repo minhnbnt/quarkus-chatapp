@@ -1,6 +1,7 @@
-package com.minhnbnt.websockets
+package com.minhnbnt.features.chat.handler
 
-import com.minhnbnt.service.ChatService
+import com.minhnbnt.domain.ChatMessage
+import com.minhnbnt.features.chat.service.ChatService
 import io.quarkus.websockets.next.OnClose
 import io.quarkus.websockets.next.OnOpen
 import io.quarkus.websockets.next.OnTextMessage

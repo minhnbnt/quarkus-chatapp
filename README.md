@@ -56,11 +56,23 @@ If you want to learn more about building native executables, please consult <htt
 ## Related Guides
 
 - Kotlin ([guide](https://quarkus.io/guides/kotlin)): Write your services in Kotlin
+- Hibernate Reactive with Panache ([guide](https://quarkus.io/guides/hibernate-reactive-panache)): Reactive ORM with PostgreSQL
+- SmallRye JWT ([guide](https://quarkus.io/guides/security-jwt)): JWT RBAC authentication
+- SmallRye JWT Build ([guide](https://quarkus.io/guides/security-jwt-build)): Sign and encrypt JWTs
 
-## Provided Code
+## Endpoints
 
-### REST
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/auth/register` | None | Register a new user |
+| POST | `/api/auth/login` | None | Login, returns JWT token |
+| POST | `/api/chat/send` | JWT Bearer | Send a chat message |
+| WS | `/chat/{userId}` | None | WebSocket chat connection |
 
-Easily start your REST Web Services
+### Usage
 
-[Related guide section...](https://quarkus.io/guides/getting-started-reactive#reactive-jax-rs-resources)
+1. Start infrastructure: `docker compose up -d`
+2. Start app: `./gradlew quarkusDev`
+3. Register: `curl -X POST http://localhost:8080/api/auth/register -H 'Content-Type: application/json' -d '{"username":"alice","password":"secret"}'`
+4. Login: `curl -X POST http://localhost:8080/api/auth/login -H 'Content-Type: application/json' -d '{"username":"alice","password":"secret"}'`
+5. Use token: `curl -X POST http://localhost:8080/api/chat/send -H 'Authorization: Bearer <token>' -H 'Content-Type: application/json' -d '{...}'`

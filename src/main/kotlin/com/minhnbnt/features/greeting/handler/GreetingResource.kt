@@ -1,4 +1,4 @@
-package com.minhnbnt
+package com.minhnbnt.features.greeting.handler
 
 import jakarta.ws.rs.GET
 import jakarta.ws.rs.Path

@@ -1,4 +1,4 @@
-package com.minhnbnt.websockets
+package com.minhnbnt.domain
 
 data class ChatMessage(
     val type: MessageType,
