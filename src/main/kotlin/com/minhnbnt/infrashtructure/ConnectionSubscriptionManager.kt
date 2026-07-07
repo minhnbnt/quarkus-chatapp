@@ -4,14 +4,7 @@ import io.quarkus.redis.datasource.ReactiveRedisDataSource
 import io.quarkus.websockets.next.WebSocketConnection
 import io.smallrye.mutiny.coroutines.asFlow
 import io.smallrye.mutiny.coroutines.awaitSuspending
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import org.jboss.logging.Logger
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
@@ -19,9 +12,9 @@ import kotlin.reflect.KClass
 class ConnectionSubscriptionManager<Message : Any>(
     private val redisDS: ReactiveRedisDataSource,
     private val messageClass: KClass<Message>,
-) : CoroutineScope {
+) {
 
-    override val coroutineContext = Dispatchers.Default + SupervisorJob()
+    val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     private val log = Logger.getLogger(ConnectionSubscriptionManager::class.java)
     private val websockets = ConcurrentHashMap<String, MutableSet<WebSocketConnection>>()
@@ -29,14 +22,14 @@ class ConnectionSubscriptionManager<Message : Any>(
 
     private fun redisChannel(channel: String) = "pubsub:$channel"
 
-    private suspend fun handleMessage(message: Message, channel: String) {
+    private fun handleMessage(message: Message, channel: String) {
 
         val connections = websockets[channel]
         if (connections.isNullOrEmpty()) {
             return
         }
 
-        coroutineScope {
+        scope.launch {
 
             val tasks = connections.map { connection ->
                 async {
@@ -61,7 +54,7 @@ class ConnectionSubscriptionManager<Message : Any>(
         connections.add(connection)
 
         channelJobs.computeIfAbsent(channel) {
-            launch {
+            scope.launch {
                 redisDS.pubsub(messageClass.java)
                     .subscribe(redisChannel(channel))
                     .asFlow()
